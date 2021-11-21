@@ -1,17 +1,9 @@
 <?php namespace PHRETS\Models;
 
-class RETSError
+class RETSError extends \Exception
 {
     protected $code;
     protected $message;
-
-    /**
-     * @return string
-     */
-    public function getCode()
-    {
-        return $this->code;
-    }
 
     /**
      * @param string $code
@@ -21,14 +13,6 @@ class RETSError
     {
         $this->code = (int)$code;
         return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getMessage()
-    {
-        return $this->message;
     }
 
     /**
