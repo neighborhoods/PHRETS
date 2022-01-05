@@ -34,15 +34,13 @@ class Session
     /** @var ResponseInterface */
     protected $last_response;
 
-    public function __construct(Configuration $configuration)
+    public function __construct(Configuration $configuration, array $guzzleConfiguration = [])
     {
         // save the configuration along with this session
         $this->configuration = $configuration;
 
-        $defaults = [];
-
         // start up our Guzzle HTTP client
-        $this->client = PHRETSClient::make($defaults);
+        $this->client = PHRETSClient::make($guzzleConfiguration);
 
         $this->cookie_jar = new CookieJar;
 
