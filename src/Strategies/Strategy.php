@@ -7,6 +7,7 @@ interface Strategy
     const PARSER_LOGIN = 'parser.login';
     const PARSER_OBJECT_SINGLE = 'parser.object.single';
     const PARSER_OBJECT_MULTIPLE = 'parser.object.multiple';
+    const PARSER_OBJECT_MULTIPLE_STREAMED = 'parser.object.multiple.streamed';
     const PARSER_SEARCH = 'parser.search';
     const PARSER_SEARCH_RECURSIVE = 'parser.search.recursive';
     const PARSER_METADATA_SYSTEM = 'parser.metadata.system';

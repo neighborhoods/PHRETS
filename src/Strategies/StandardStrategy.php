@@ -14,6 +14,7 @@ class StandardStrategy implements Strategy
         Strategy::PARSER_LOGIN => \PHRETS\Parsers\Login\OneFive::class,
         Strategy::PARSER_OBJECT_SINGLE => \PHRETS\Parsers\GetObject\Single::class,
         Strategy::PARSER_OBJECT_MULTIPLE => \PHRETS\Parsers\GetObject\Multiple::class,
+        Strategy::PARSER_OBJECT_MULTIPLE_STREAMED => \PHRETS\Parsers\GetObject\Multiple\Streamed::class,
         Strategy::PARSER_SEARCH => \PHRETS\Parsers\Search\OneX::class,
         Strategy::PARSER_SEARCH_RECURSIVE => \PHRETS\Parsers\Search\RecursiveOneX::class,
         Strategy::PARSER_METADATA_SYSTEM => \PHRETS\Parsers\GetMetadata\System::class,

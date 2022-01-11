@@ -1,0 +1,93 @@
+<?php namespace PHRETS\Parsers\GetObject\Multiple;
+
+use GuzzleHttp\Psr7\Response;
+use PHRETS\Http\Response as PHRETSResponse;
+use Illuminate\Support\Collection;
+use PHRETS\Parsers\GetObject\Single;
+
+class Streamed
+{
+    // in bytes
+    // TODO: parameterize this
+    private const CHUNK_SIZE = 20 * 1000 * 1000;
+
+    public function parse(PHRETSResponse $response) : \Generator
+    {
+        if (!$response->getBody()) {
+            return;
+        }
+
+        $boundary = $this->determineBoundary($response->getHeader('Content-Type'));
+        $singleObjectParser = new Single();
+
+        $firstChunk = true;
+        $inProgressSegment = '';
+
+        while (!$response->getBody()->eof()) {
+            $chunk = $response->getBody()->read(self::CHUNK_SIZE);
+
+            // in all likelihood our previous chunk split a segment in half
+            // this re-combines that segment from its two halves
+            // NOTE: a single gigantic image (>100MB) could be problematic.
+            // returning gigantic images as streams would require a drastically different API
+            // e.g. first sending the image headers, then wrapping the HTTP stream
+            // with our own stream (in order to stop it at the boundary), or
+            // streaming the images to disk and providing userspace with filenames
+            $chunk = $inProgressSegment . $chunk;
+
+            $segments = preg_split("/(\r\n|^)--{$boundary}-?-?(\r\n|$)/", $chunk);
+
+            // remove "preamble" left over by the preg_split()
+            if ($firstChunk) {
+                array_shift($segments);
+
+                $firstChunk = false;
+            }
+
+            // the last segment at the end is most likely incomplete (and even in the
+            // one in a million chance that it is technically complete (i.e. the chunk
+            // ended just before the next boundary), there's little harm in processing
+            // it in the next chunk)
+            $inProgressSegment = array_pop($segments);
+
+            // process remaining complete segments (if any; an incomplete segment could
+            // have taken up the whole chunk)
+            foreach ($segments as $segment) {
+                // get Guzzle to parse this multipart section as if it's a whole HTTP message
+                $psrResponse = \GuzzleHttp\Psr7\parse_response("HTTP/1.1 200 OK\r\n" . $segment . "\r\n");
+
+                // hydrate a "single" object from this segment
+                $phretsResponse = new PHRETSResponse($psrResponse);
+                yield $singleObjectParser->parse($phretsResponse);
+
+                unset($psrResponse);
+                unset($phretsResponse);
+                gc_collect_cycles();
+            }
+
+            unset($chunk);
+            unset($segments);
+            gc_collect_cycles();
+        }
+
+        // ignore the last in-progress segment ("epilogue" left over from preg_split())
+    }
+
+    private function determineBoundary(string $contentType) : ?string
+    {
+        preg_match('/boundary\=\"(.*?)\"/', $contentType, $matches);
+        if (isset($matches[1])) {
+            $boundary = $matches[1];
+        } else {
+            preg_match('/boundary\=(.*?)(\s|$|\;)/', $contentType, $matches);
+            if (isset($matches[1])) {
+                $boundary = $matches[1];
+            } else {
+                $boundary = null;
+            }
+        }
+
+        // strip quotes off of the boundary
+        return preg_replace('/^\"(.*?)\"$/', '\1', $boundary);
+    }
+}

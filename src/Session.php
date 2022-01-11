@@ -142,6 +142,31 @@ class Session
         return $collection;
     }
 
+    public function GetObjectIterator($resource, $type, $content_ids, $object_ids = '*', $location = 0) : \Generator
+    {
+        $request_id = GetObject::ids($content_ids, $object_ids);
+
+        $response = $this->request(
+            'GetObject',
+            [
+                'query' => [
+                    'Resource' => $resource,
+                    'Type' => $type,
+                    'ID' => implode(',', $request_id),
+                    'Location' => $location,
+                ]
+            ]
+        );
+
+        if (stripos($response->getHeader('Content-Type'), 'multipart') !== false) {
+            $parser = $this->grab(Strategy::PARSER_OBJECT_MULTIPLE_STREAMED);
+            yield from $parser->parse($response);
+        } else {;
+            $parser = $this->grab(Strategy::PARSER_OBJECT_SINGLE);
+            yield $parser->parse($response);
+        }
+    }
+
     /**
      * @return Models\Metadata\System
      * @throws Exceptions\CapabilityUnavailable
