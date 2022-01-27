@@ -1,30 +1,39 @@
-<?php namespace PHRETS\Parsers\GetObject\Multiple;
+<?php namespace PHRETS\Parsers\GetObject;
 
-use GuzzleHttp\Psr7\Response;
 use PHRETS\Http\Response as PHRETSResponse;
-use Illuminate\Support\Collection;
-use PHRETS\Parsers\GetObject\Single;
 
-class Streamed
+class MultipleStreamed
 {
-    // in bytes
-    // TODO: parameterize this
-    private const CHUNK_SIZE = 20 * 1000 * 1000;
+    // 20MB
+    const DEFAULT_CHUNK_SIZE = 20000000;
 
-    public function parse(PHRETSResponse $response) : \Generator
+    public function parse(PHRETSResponse $response, $chunkSize = null)
     {
         if (!$response->getBody()) {
             return;
         }
 
-        $boundary = $this->determineBoundary($response->getHeader('Content-Type'));
+        $chunkSize = $chunkSize ?: self::DEFAULT_CHUNK_SIZE;
+
         $singleObjectParser = new Single();
 
-        $firstChunk = true;
+        $isFirstChunk = true;
         $inProgressSegment = '';
 
+        $boundary = $this->determineBoundary($response->getHeader('Content-Type'));
+        $boundaryRegex = "/(\r\n|^)--{$boundary}-?-?(\r\n|$)/";
+        // dummy preg_match() to test if the regex is valid
+        if (preg_match($boundaryRegex, '') === false) {
+            throw new \RuntimeException(
+                sprintf(
+                    'MLS-provided boundary `%s` interferes with regex',
+                    $boundary
+                )
+            );
+        }
+
         while (!$response->getBody()->eof()) {
-            $chunk = $response->getBody()->read(self::CHUNK_SIZE);
+            $chunk = $response->getBody()->read($chunkSize);
 
             // in all likelihood our previous chunk split a segment in half
             // this re-combines that segment from its two halves
@@ -35,13 +44,13 @@ class Streamed
             // streaming the images to disk and providing userspace with filenames
             $chunk = $inProgressSegment . $chunk;
 
-            $segments = preg_split("/(\r\n|^)--{$boundary}-?-?(\r\n|$)/", $chunk);
+            $segments = preg_split($boundaryRegex, $chunk);
 
             // remove "preamble" left over by the preg_split()
-            if ($firstChunk) {
+            if ($isFirstChunk) {
                 array_shift($segments);
 
-                $firstChunk = false;
+                $isFirstChunk = false;
             }
 
             // the last segment at the end is most likely incomplete (and even in the
@@ -73,7 +82,7 @@ class Streamed
         // ignore the last in-progress segment ("epilogue" left over from preg_split())
     }
 
-    private function determineBoundary(string $contentType) : ?string
+    private function determineBoundary($contentType)
     {
         preg_match('/boundary\=\"(.*?)\"/', $contentType, $matches);
         if (isset($matches[1])) {

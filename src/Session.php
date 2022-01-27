@@ -142,7 +142,7 @@ class Session
         return $collection;
     }
 
-    public function GetObjectIterator($resource, $type, $content_ids, $object_ids = '*', $location = 0) : \Generator
+    public function GetObjectIterator($resource, $type, $content_ids, $object_ids = '*', $location = 0, $chunkSize = null)
     {
         $request_id = GetObject::ids($content_ids, $object_ids);
 
@@ -160,8 +160,8 @@ class Session
 
         if (stripos($response->getHeader('Content-Type'), 'multipart') !== false) {
             $parser = $this->grab(Strategy::PARSER_OBJECT_MULTIPLE_STREAMED);
-            yield from $parser->parse($response);
-        } else {;
+            yield from $parser->parse($response, $chunkSize);
+        } else {
             $parser = $this->grab(Strategy::PARSER_OBJECT_SINGLE);
             yield $parser->parse($response);
         }
