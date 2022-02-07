@@ -19,11 +19,26 @@
     "phpunit/phpunit": "5.*",
     "psr/log": "1.*",
     "monolog/monolog": "1.10.*",
-    "gsaulmon/guzzlerecorder": "2.*"
+    "gsaulmon/guzzlerecorder": "2.*",
+    "brainmaestro/composer-git-hooks": "^2.8"
   },
   "autoload": {
     "psr-4": {
       "PHRETS\\": "src/"
+    }
+  },
+  "extra": {
+    "hooks": {
+      "pre-commit": [
+        "echo committing as $(git config user.name)",
+        "php-cs-fixer fix ."
+      ],
+      "commit-msg": "grep -q '[A-Z]+-[0-9]+.*' $1",
+      "pre-push": [
+        "php-cs-fixer fix --dry-run .",
+        "phpunit"
+      ],
+      "post-merge": "composer install"
     }
   }
 }
