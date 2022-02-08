@@ -28,6 +28,9 @@
       "PHRETS\\": "src/"
     }
   },
+  "scripts": {
+    "post-autoload-dump": "vendor/bin/captainhook install -f -s"
+  },
   "extra": {
     "ramsey/conventional-commits": {
       "config": {
