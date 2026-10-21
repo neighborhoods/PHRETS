@@ -1,5 +1,24 @@
 ## master
 
+* Guzzle 8 support: cookies are now handled by the session's cookie jar instead of a raw cURL option
+* `setCookieJar()` now applies to requests
+* A Login that receives a 401 which sets new cookies is retried once with those cookies
+
+## 2.6.4
+
+_Released July 11, 2023_
+
+* Support for PHP 8
+
+## 2.6.3
+
+_Released February 16, 2022_
+
+* New Logout method (duplicates previous Disconnect method)
+* Fix deprecated parse_response method from Guzzle
+* New automatic retry option `getobject_auto_retry` (default false) for session issues reported in GetObject responses
+* Fix XML error detection in GetObject responses
+
 ## 2.6.2
 
 _Released March 18, 2020_

@@ -19,6 +19,11 @@ class Single
         $obj->setMimeVersion($response->getHeader('MIME-Version'));
         $obj->setPreferred($response->getHeader('Preferred'));
 
+        // collect all headers
+        foreach ($response->getHeaders() as $name => $value) {
+            $obj->setHeader($name, implode('; ', $value));
+        }
+
         if ($this->isError($response)) {
             $xml = $response->xml();
             
@@ -44,7 +49,7 @@ class Single
         }
 
         $content_type = $response->getHeader('Content-Type');
-        if ($content_type and strpos($content_type, 'xml') !== false) {
+        if ($content_type and strpos($content_type, 'text/xml') !== false) {
             $xml = $response->xml();
 
             if (isset($xml['ReplyCode']) and $xml['ReplyCode'] != 0) {

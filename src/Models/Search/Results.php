@@ -247,6 +247,7 @@ class Results implements Countable, ArrayAccess, IteratorAggregate
         return $this;
     }
 
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         return $this->results->getIterator();
@@ -256,6 +257,7 @@ class Results implements Countable, ArrayAccess, IteratorAggregate
      * @param mixed $offset
      * @return bool
      */
+    #[\ReturnTypeWillChange]
     public function offsetExists($offset)
     {
         return $this->results->offsetExists($offset);
@@ -265,6 +267,7 @@ class Results implements Countable, ArrayAccess, IteratorAggregate
      * @param mixed $offset
      * @return Record|null
      */
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         return $this->results->offsetGet($offset);
@@ -274,6 +277,7 @@ class Results implements Countable, ArrayAccess, IteratorAggregate
      * @param mixed $offset
      * @param mixed $value
      */
+    #[\ReturnTypeWillChange]
     public function offsetSet($offset, $value)
     {
         if ($offset) {
@@ -286,6 +290,7 @@ class Results implements Countable, ArrayAccess, IteratorAggregate
     /**
      * @param mixed $offset
      */
+    #[\ReturnTypeWillChange]
     public function offsetUnset($offset)
     {
         $this->results->offsetUnset($offset);
@@ -294,6 +299,7 @@ class Results implements Countable, ArrayAccess, IteratorAggregate
     /**
      * @return int
      */
+    #[\ReturnTypeWillChange]
     public function count()
     {
         return $this->results->count();

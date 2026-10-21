@@ -316,10 +316,19 @@ class Session
      * @return bool
      * @throws Exceptions\CapabilityUnavailable
      */
+    public function Logout()
+    {
+        $this->request('Logout');
+        return true;
+    }
+
+    /**
+     * @return bool
+     * @throws Exceptions\CapabilityUnavailable
+     */
     public function Disconnect()
     {
-        $response = $this->request('Logout');
-        return true;
+        return $this->Logout();
     }
 
     /**
@@ -349,6 +358,8 @@ class Session
         $this->debug("Sending HTTP Request for {$url} ({$capability})", $options);
         $this->last_request_url = $url;
 
+        $cookies_before_request = $this->cookie_jar->toArray();
+
         try {
             /** @var ResponseInterface $response */
             if ($this->configuration->readOption('use_post_method')) {
@@ -375,6 +386,13 @@ class Session
             }
 
             if ($capability == 'Login') {
+                // some servers set a cookie on the Digest challenge and require it on the authenticated request.
+                // cURL handles that exchange internally, so retry once now that the cookie jar has what it needs
+                if (!$is_retry and $this->cookie_jar->toArray() != $cookies_before_request) {
+                    $this->debug("401 Unauthorized on Login set new cookies.  Retrying Login with them");
+                    return $this->request($capability, $options, true);
+                }
+
                 // unauthorized on a Login request, so bail
                 throw $e;
             }
@@ -448,6 +466,36 @@ class Session
                 // 20403 - No objects found - not exception worthy in my mind
                 if (!in_array($rc, [0, 20201, 20403])) {
                     throw new RETSException($xml['ReplyText'], (int)$xml['ReplyCode']);
+                }
+            }
+        }
+
+        if ($this->getConfiguration()->readOption('getobject_auto_retry') and $capability == 'GetObject') {
+            if (stripos($response->getHeader('Content-Type'), 'multipart') !== false) {
+                $parser = $this->grab(Strategy::PARSER_OBJECT_MULTIPLE);
+                $collection = $parser->parse($response);
+            } else {
+                $collection = new Collection;
+                $parser = $this->grab(Strategy::PARSER_OBJECT_SINGLE);
+                $object = $parser->parse($response);
+                $collection->push($object);
+            }
+
+            /** @var BaseObject[] $collection */
+            foreach ($collection as $object) {
+                if ($object->isError() and $object->getError()->getCode() == '20037') {
+                    if ($is_retry) {
+                        // this attempt was already a retry, so let's stop here
+                        $this->debug("Request retry failed.  Won't retry again");
+                        // let this error fall through to the more generic handling below
+                    } else {
+                        $this->debug("RETS 20037 re-auth requested");
+                        $this->debug("Logging in again and retrying request");
+                        // see if logging in again and retrying the request works
+                        $this->Login();
+
+                        return $this->request($capability, $options, true);
+                    }
                 }
             }
         }
@@ -569,7 +617,7 @@ class Session
                 'Accept-Encoding' => 'gzip',
                 'Accept' => '*/*',
             ],
-            'curl' => [ CURLOPT_COOKIEFILE => tempnam('/tmp', 'phrets') ]
+            'cookies' => $this->cookie_jar,
         ];
 
         // disable following 'Location' header (redirects) automatically
