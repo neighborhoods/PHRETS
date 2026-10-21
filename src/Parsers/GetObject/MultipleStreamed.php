@@ -63,7 +63,7 @@ class MultipleStreamed
             // have taken up the whole chunk)
             foreach ($segments as $segment) {
                 // get Guzzle to parse this multipart section as if it's a whole HTTP message
-                $psrResponse = \GuzzleHttp\Psr7\parse_response("HTTP/1.1 200 OK\r\n" . $segment . "\r\n");
+                $psrResponse = \GuzzleHttp\Psr7\Message::parseResponse("HTTP/1.1 200 OK\r\n" . $segment . "\r\n");
 
                 // hydrate a "single" object from this segment
                 $phretsResponse = new PHRETSResponse($psrResponse);
